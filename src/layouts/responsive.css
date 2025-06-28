@@ -1,0 +1,72 @@
+
+  
+  /* Media Query for Tablet and Desktop Screens */
+  @media (max-width: 1024px) {
+    .sec-nav {
+      font-size: 9px!Important   ; /* Text size for tablets and up (sm to md screens) */
+    }
+    .btn-s{
+      height: 40px;
+      width: 120px;
+    }
+    .sec-navv{
+      font-size: 10px!Important   ; /* Text size for tablets and up (sm to md screens) */
+    }
+    .gapper{
+      gap: 5px;
+    }
+    .logo-res{
+      height: 100px;
+      width: 100px;
+    }
+    .line{
+      margin-top: 2px!important;
+      margin-bottom: 8px!important;
+    }
+    .line2{
+      margin-top: 7px!important;
+      margin-bottom: 10px!important;
+    }
+    .up-bg{
+      align-items: center;
+    }
+   
+    
+  }
+  @media (max-width:768px) {
+    .sec-nav {
+      font-size: 6.5px!Important   ; /* Text size for tablets and up (sm to md screens) */
+    }
+    .sec-navv{
+      font-size: 6px!Important   ; /* Text size for tablets and up (sm to md screens) */
+    }
+    .btn-s{
+      height: 30px;
+      width: 90px;
+    }
+    .gapper{
+      gap: 0.4px!important;
+    }
+    .line{
+      margin-top: 2px!important;
+      margin-bottom: 6px!important;
+    }
+    .line2{
+      margin-top: 4px!important;
+      margin-bottom: 10px!important;
+    }
+    text-menu{
+      width: 100px!important;
+      height: 100px!important;
+    }
+    
+    
+  }
+  @media (max-width:500px) {
+    .sec-nav {
+      font-size: 11px!Important   ; /* Text size for tablets and up (sm to md screens) */
+    }
+  }
+  
+
+  

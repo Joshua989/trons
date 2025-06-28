@@ -1,0 +1,26 @@
+p{
+
+color: var(--Gray-900, #101828);
+font-family: Inter;
+font-size: 16px;
+font-style: normal;
+font-weight: bold;
+line-height: 24px; /* 150% */
+}
+/* Default padding for larger screens */
+.custom-padding {
+    padding-left: 2.5rem; /* equivalent to pl-10 */
+    padding-right: 2.5rem; /* equivalent to pr-10 */
+  }
+  
+  /* Reduce padding on mobile view */
+  @media (max-width: 640px) {
+    .custom-padding {
+      padding-left: 1rem; /* equivalent to pl-4 */
+      padding-right: 1rem; /* equivalent to pr-4 */
+    }
+  }
+  .csss{
+    font-size: larger!important;
+  }
+  

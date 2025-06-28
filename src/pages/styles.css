@@ -1,0 +1,414 @@
+/* styles.css */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #e9d4ff, #fbc2eb, #a6c1ee);
+}
+
+.nav {
+  padding: 1rem;
+  width: 100%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  height: 35px;
+}
+
+.nav-links {
+  display: none;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #4b5563;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #9333ea;
+}
+
+.nav-link i {
+  font-size: 0.875rem;
+}
+
+.nav-button {
+  display: none;
+  background-color: #9333ea;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.nav-button:hover {
+  background-color: #7e22ce;
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  color: #4b5563;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mobile-menu-button:hover {
+  color: #9333ea;
+  background-color: #f3f4f6;
+}
+
+.mobile-menu {
+  display: none;
+  margin-top: 1rem;
+  padding-bottom: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.mobile-menu.active {
+  display: block;
+}
+
+.mobile-menu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.mobile-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #4b5563;
+  text-decoration: none;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.mobile-menu-link:hover {
+  color: #9333ea;
+  background-color: #f9fafb;
+}
+
+.mobile-menu-button-main {
+  width: 100%;
+  background-color: #9333ea;
+  color: white;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.mobile-menu-button-main:hover {
+  background-color: #7e22ce;
+}
+
+.main-container {
+  padding: 1rem;
+}
+
+.content-container {
+  max-width: 56rem;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-container {
+  margin-bottom: 2rem;
+}
+
+.progress-bar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.progress-fill {
+  background-color: #9333ea;
+  height: 100%;
+  border-radius: 9999px;
+  transition: all 0.5s;
+  width: 25%;
+}
+
+.steps-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.25rem;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.step-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: #9333ea;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.step-icon.inactive {
+  background-color: white;
+  border: 2px solid #d1d5db;
+  color: #4b5563;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9333ea;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.step-label.inactive {
+  color: #4b5563;
+}
+
+.heading-container {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.main-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: 0.025em;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+}
+
+.sub-heading {
+  font-size: 1rem;
+  color: #4b5563;
+}
+
+.card-container {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.card-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #4b5563;
+}
+
+.card-text {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.card-description {
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.card-button {
+  width: 100;
+  background-color: #9333ea;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.card-button:hover {
+  background-color: #7e22ce;
+}
+
+.card-button svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (min-width: 640px) {
+  .nav {
+    padding: 1rem 1.5rem;
+  }
+  
+  .main-container {
+    padding: 1.5rem;
+  }
+  
+  .content-container {
+    padding: 1.5rem;
+  }
+  
+  .card {
+    padding: 1rem;
+  }
+  
+  .card-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .card-content {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+  
+  .card-button {
+    width: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .nav-button {
+    display: flex;
+  }
+  
+  .mobile-menu-button {
+    display: none;
+  }
+  
+  .main-container {
+    padding: 2rem;
+  }
+  
+  .content-container {
+    padding: 2rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .step-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .main-heading {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nav-links {
+    gap: 2rem;
+  }
+  
+  .content-container {
+    padding: 2.5rem;
+  }
+  
+  .step-icon {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .main-heading {
+    font-size: 2rem;
+  }
+}
