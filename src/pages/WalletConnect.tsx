@@ -375,7 +375,7 @@ const WalletConnect = () => {
                     </svg>
                   </div>
                   <div className="card-text">
-                    <h3 className="card-title">Your TRON security is our priority.</h3>
+                    <h3 className="card-title">Your TRON security is our priorit.y</h3>
                     <p className="card-description">We only require view access to analyze your TRON wallet. No transactions or approvals needed.</p>
                   </div>
                 </div>
