@@ -546,7 +546,7 @@ const WalletConnect = () => {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  ✅ <strong>Successfully connected to TRON network and synced with API</strong>
+                  ✅ <strong>Successfully hdhdh connected to TRON network and synced with API</strong>
                 </div>
               </div>
             )}
