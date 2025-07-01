@@ -51,21 +51,23 @@ const WalletConnectionCard = () => {
   const { wallet, address, connected, connecting, disconnect } = useWallet();
   const [walletData, setWalletData] = useState<WalletInfo | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
 
-  // API Configuration - dynamically set based on environment
-  const API_BASE_URL = useMemo(() => {
+  // API Configuration - Updated to work with deployed environments
+  const getApiBaseUrl = () => {
+    // Check if we're in development
     if (typeof window !== 'undefined') {
-      // In production, use the same origin as the frontend
-      const isProduction = window.location.hostname !== 'localhost';
-      if (isProduction) {
-        // Use relative URLs in production or set your production API URL
-        return '/api';  // This assumes your API is deployed alongside your frontend
-        // Alternative: return 'https://your-api-domain.com/api';
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api';
       }
-      return 'http://localhost:5000/api';
     }
-    return '/api';
-  }, []);
+    // For production, you can set your production API URL here
+    // Replace this with your actual production API URL
+    return 'https://your-production-api.com/api';
+  };
+
+  const API_BASE_URL = getApiBaseUrl();
 
   const log = (message: string) => {
     console.log(`[TronTrust] ${message}`);
@@ -83,7 +85,7 @@ const WalletConnectionCard = () => {
         walletType: wallet.adapter.name,
         sessionId: Date.now().toString(),
         metadata: {
-          userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown',
+          userAgent: navigator.userAgent,
           timestamp: Date.now()
         }
       };
@@ -92,15 +94,12 @@ const WalletConnectionCard = () => {
       saveWalletToAPI(walletInfo);
     } else if (!connected && walletData) {
       log('TRON Wallet disconnected');
-      if (walletData.address) {
-        removeWalletFromAPI(walletData.address);
-      }
+      removeWalletFromAPI(walletData.address);
       setWalletData(null);
-      setApiError(null);
     }
   }, [connected, address, wallet]);
 
-  // API Functions with better error handling
+  // API Functions with better error handling for production
   const saveWalletToAPI = async (walletInfo: WalletInfo) => {
     try {
       setApiError(null);
@@ -108,7 +107,6 @@ const WalletConnectionCard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
         body: JSON.stringify(walletInfo)
       });
@@ -120,21 +118,17 @@ const WalletConnectionCard = () => {
       const result = await response.json();
       if (result.success) {
         log(`TRON wallet saved to API: ${walletInfo.address}`);
+        setApiSuccess('Wallet successfully verified and saved!');
         return result;
       } else {
-        const errorMsg = result.error || 'Unknown API error';
-        log(`Error saving TRON wallet: ${errorMsg}`);
-        setApiError(`Failed to save wallet: ${errorMsg}`);
+        log(`Error saving TRON wallet: ${result.error}`);
+        setApiError(`Failed to save wallet: ${result.error}`);
         return null;
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log(`API Error: ${errorMsg}`);
-      
-      // Don't show API errors as critical errors - wallet still works
-      if (!errorMsg.includes('fetch')) {
-        setApiError(`API connection issue: ${errorMsg}`);
-      }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log(`API Error: ${errorMessage}`);
+      setApiError(`Connection failed: ${errorMessage}`);
       return null;
     }
   };
@@ -146,7 +140,6 @@ const WalletConnectionCard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
         body: JSON.stringify({ address })
       });
@@ -158,27 +151,38 @@ const WalletConnectionCard = () => {
       const result = await response.json();
       if (result.success) {
         log(`TRON wallet removed from API: ${address}`);
+        setApiSuccess('Wallet disconnected successfully!');
         return result;
       } else {
-        const errorMsg = result.error || 'Unknown API error';
-        log(`Error removing TRON wallet: ${errorMsg}`);
+        log(`Error removing TRON wallet: ${result.error}`);
+        setApiError(`Failed to disconnect wallet: ${result.error}`);
         return null;
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      log(`API Error: ${errorMsg}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log(`API Error: ${errorMessage}`);
+      setApiError(`Disconnection failed: ${errorMessage}`);
       return null;
     }
   };
 
   const handleDisconnect = useCallback(async () => {
     log('Disconnecting TRON wallet...');
-    try {
-      await disconnect();
-    } catch (error) {
-      log(`Disconnect error: ${error instanceof Error ? error.message : String(error)}`);
-    }
+    setApiSuccess(null);
+    setApiError(null);
+    await disconnect();
   }, [disconnect]);
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (apiSuccess || apiError) {
+      const timer = setTimeout(() => {
+        setApiSuccess(null);
+        setApiError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [apiSuccess, apiError]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -208,14 +212,16 @@ const WalletConnectionCard = () => {
         )}
       </div>
       
-      {/* API Error Display */}
+      {/* API Status Messages */}
+      {apiSuccess && (
+        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <p className="text-sm text-green-800">{apiSuccess}</p>
+        </div>
+      )}
+      
       {apiError && (
-        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-          <p className="text-sm text-yellow-800">
-            <strong>Note:</strong> {apiError}
-            <br />
-            <span className="text-xs">Wallet connection still works normally.</span>
-          </p>
+        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
+          <p className="text-sm text-red-800">{apiError}</p>
         </div>
       )}
       
@@ -224,21 +230,12 @@ const WalletConnectionCard = () => {
         <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h4 className="text-sm font-semibold text-green-800 mb-2">Connected TRON Wallet:</h4>
           <div className="space-y-1 text-sm text-green-700">
-            <p><strong>Address:</strong> <span className="font-mono text-xs">{walletData.address}</span></p>
+            <p><strong>Address:</strong> {walletData.address}</p>
             <p><strong>Network:</strong> {walletData.network}</p>
             <p><strong>Wallet:</strong> {walletData.walletType}</p>
             <p><strong>Chain ID:</strong> {walletData.chainId}</p>
-            <p><strong>Session:</strong> <span className="font-mono text-xs">{walletData.sessionId}</span></p>
+            <p><strong>Session ID:</strong> {walletData.sessionId}</p>
           </div>
-        </div>
-      )}
-      
-      {/* Connection Status */}
-      {connecting && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800">
-            <strong>Connecting...</strong> Please check your wallet for connection prompts.
-          </p>
         </div>
       )}
     </div>
@@ -249,72 +246,38 @@ const WalletConnectionCard = () => {
 const WalletConnect = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Initialize wallet adapters with proper error handling
+  // Initialize wallet adapters with production-ready configuration
   const adapters = useMemo(() => {
-    const adaptersList = [];
-    
-    try {
-      adaptersList.push(new TronLinkAdapter());
-    } catch (error) {
-      console.warn('[TronTrust] TronLink adapter failed to initialize:', error);
-    }
-    
-    try {
-      adaptersList.push(new BitKeepAdapter());
-    } catch (error) {
-      console.warn('[TronTrust] BitKeep adapter failed to initialize:', error);
-    }
-    
-    try {
-      adaptersList.push(new OkxWalletAdapter());
-    } catch (error) {
-      console.warn('[TronTrust] OKX adapter failed to initialize:', error);
-    }
-    
-    try {
-      adaptersList.push(new TokenPocketAdapter());
-    } catch (error) {
-      console.warn('[TronTrust] TokenPocket adapter failed to initialize:', error);
-    }
-    
-    try {
-      // WalletConnect configuration for production
-      const projectId = process.env.REACT_APP_WALLETCONNECT_PROJECT_ID || '048110749acfc9f73e40e560cd1c11ec';
-      
-      adaptersList.push(new WalletConnectAdapter({
-        network: 'Mainnet',
-        options: {
-          relayUrl: 'wss://relay.walletconnect.com',
-          projectId: projectId,
-          metadata: {
-            name: 'TronTrust',
-            description: 'TRON Wallet Security Verification App',
-            url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.vercel.app',
-            icons: ['https://avatars.githubusercontent.com/u/37784886']
-          }
+    const walletConnectAdapter = new WalletConnectAdapter({
+      network: 'Mainnet', // or 'Shasta' for testnet
+      options: {
+        relayUrl: 'wss://relay.walletconnect.com',
+        // Using a working project ID - replace with your own for production
+        projectId: '048110749acfc9f73e40e560cd1c11ec', 
+        metadata: {
+          name: 'TronTrust',
+          description: 'TRON Wallet Security Verification App',
+          url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
+          icons: ['https://avatars.githubusercontent.com/u/37784886']
         }
-      }));
-    } catch (error) {
-      console.warn('[TronTrust] WalletConnect adapter failed to initialize:', error);
-    }
-    
-    try {
-      adaptersList.push(new LedgerAdapter());
-    } catch (error) {
-      console.warn('[TronTrust] Ledger adapter failed to initialize:', error);
-    }
-    
-    return adaptersList;
+      }
+    });
+
+    return [
+      new TronLinkAdapter(),
+      new BitKeepAdapter(),
+      new OkxWalletAdapter(),
+      new TokenPocketAdapter(),
+      walletConnectAdapter,
+      new LedgerAdapter()
+    ];
   }, []);
 
   const onError = useCallback((error: any) => {
-    console.error('[TronTrust] Wallet Error:', error.message || error);
-    
-    // You can add user-friendly error notifications here
-    if (error.message?.includes('User rejected')) {
-      console.log('[TronTrust] User cancelled the connection');
-    } else if (error.message?.includes('No provider')) {
-      console.log('[TronTrust] Wallet not found - please install a TRON wallet');
+    console.error('[TronTrust] Wallet Error:', error);
+    // You can add more sophisticated error handling here
+    if (error.message) {
+      console.error('[TronTrust] Error Details:', error.message);
     }
   }, []);
 
