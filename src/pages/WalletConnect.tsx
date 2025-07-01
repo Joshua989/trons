@@ -48,7 +48,7 @@ type WalletInfo = {
 };
 
 const WalletConnectionCard = () => {
-  const { wallet, address, connected, connecting, disconnect, select } = useWallet();
+  const { wallet, address, connected, connecting, disconnect } = useWallet();
   const [walletData, setWalletData] = useState<WalletInfo | null>(null);
 
   // API Configuration
