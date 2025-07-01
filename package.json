@@ -10,9 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@reown/appkit": "^1.7.11",
-    "@reown/appkit-adapter-wagmi": "^1.7.11",
     "@tailwindcss/vite": "^4.0.9",
+    "@tronweb3/tronwallet-abstract-adapter": "^1.1.9",
+    "@tronweb3/tronwallet-adapter-ledger": "^1.1.11",
+    "@tronweb3/tronwallet-adapter-react-hooks": "^1.1.10",
+    "@tronweb3/tronwallet-adapter-react-ui": "^1.1.11",
+    "@tronweb3/tronwallet-adapter-tronlink": "^1.1.12",
+    "@tronweb3/tronwallet-adapter-walletconnect": "^2.0.3",
+    "@tronweb3/tronwallet-adapters": "^1.2.9",
     "@tronweb3/walletconnect-tron": "^3.0.0",
     "@walletconnect/client": "^1.8.0",
     "@walletconnect/qrcode-modal": "^1.8.0",

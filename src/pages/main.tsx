@@ -4,7 +4,7 @@
 const main = () => {
   return (
     <div >
-        <div id="roott" >
+        <div  >
     <div className="App">
       <div data-is-root-theme="true" data-accent-color="indigo" data-gray-color="slate" data-has-background="true"
         data-panel-background="translucent" data-radius="medium" data-scaling="100%" className="radix-themes">
