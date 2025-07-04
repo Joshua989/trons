@@ -27,12 +27,6 @@ import {
 } from 'lucide-react';
 import logo from './logo.png'
 
-const Logo = () => (
-  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-    <span className="text-white font-bold text-sm">TT</span>
-  </div>
-);
-
 interface WalletInfo {
   address: string;
   chainId: number;
