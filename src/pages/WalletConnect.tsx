@@ -10,7 +10,6 @@ import {
 } from '@tronweb3/tronwallet-adapters';
 import { WalletProvider, useWallet } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { WalletModalProvider, WalletActionButton } from '@tronweb3/tronwallet-adapter-react-ui';
-import '@tronweb3/tronwallet-adapter-react-ui/style.css';
 import { 
   Zap, 
   Settings, 
@@ -25,7 +24,6 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
-import logo from './logo.png'
 
 interface WalletInfo {
   address: string;
@@ -48,6 +46,12 @@ const WalletConnectionCard = () => {
   const [balance, setBalance] = useState<string | null>(null);
   const [isRealTime, setIsRealTime] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getApiBaseUrl = () => {
     if (typeof window !== 'undefined') {
@@ -62,10 +66,14 @@ const WalletConnectionCard = () => {
   const API_BASE_URL = getApiBaseUrl();
 
   const log = (message: string) => {
-    console.log(`[TronTrust] ${message}`);
+    if (typeof console !== 'undefined') {
+      console.log(`[TronTrust] ${message}`);
+    }
   };
 
   const fetchBalance = useCallback(async (addr: string) => {
+    if (!addr || !isMounted) return '0';
+    
     try {
       setBalanceLoading(true);
       log(`Fetching balance for address: ${addr}`);
@@ -92,11 +100,13 @@ const WalletConnectionCard = () => {
     } finally {
       setBalanceLoading(false);
     }
-  }, []);
+  }, [isMounted]);
 
   // Real-time balance updates
   useEffect(() => {
-    let intervalId = null;
+    if (!isMounted) return;
+    
+    let intervalId: NodeJS.Timeout | null = null;
     
     if (connected && address) {
       log(`Setting up real-time balance monitoring for: ${address}`);
@@ -119,10 +129,12 @@ const WalletConnectionCard = () => {
         log('Stopped real-time balance monitoring');
       }
     };
-  }, [connected, address, fetchBalance]);
+  }, [connected, address, fetchBalance, isMounted]);
 
   // Handle wallet connection/disconnection
   useEffect(() => {
+    if (!isMounted) return;
+    
     const handleConnection = async () => {
       if (connected && address && wallet) {
         log(`TRON Wallet connected successfully!`);
@@ -136,7 +148,7 @@ const WalletConnectionCard = () => {
           walletType: wallet.adapter.name,
           sessionId: Date.now().toString(),
           metadata: {
-            userAgent: navigator.userAgent,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
             timestamp: Date.now(),
             connectedAt: new Date().toISOString()
           }
@@ -164,7 +176,7 @@ const WalletConnectionCard = () => {
     };
 
     handleConnection();
-  }, [connected, address, wallet]);
+  }, [connected, address, wallet, isMounted]);
 
   const saveWalletToAPI = async (walletInfo: WalletInfo) => {
     try {
@@ -247,6 +259,8 @@ const WalletConnectionCard = () => {
 
   // Clear messages after 5 seconds
   useEffect(() => {
+    if (!isMounted) return;
+    
     if (apiSuccess || apiError) {
       const timer = setTimeout(() => {
         setApiSuccess(null);
@@ -254,7 +268,17 @@ const WalletConnectionCard = () => {
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [apiSuccess, apiError]);
+  }, [apiSuccess, apiError, isMounted]);
+
+  if (!isMounted) {
+    return (
+      <div className="bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 p-6 shadow-xl">
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 p-6 shadow-xl">
@@ -366,32 +390,44 @@ const WalletConnectionCard = () => {
 
 const WalletConnect = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const adapters = useMemo(() => {
-    const walletConnectAdapter = new WalletConnectAdapter({
-      network: 'Mainnet',
-      options: {
-        relayUrl: 'wss://relay.walletconnect.com',
-        projectId: '048110749acfc9f73e40e560cd1c11ec',
-        metadata: {
-          name: 'TronTrust',
-          description: 'TRON Wallet Security Verification App',
-          url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
-          icons: ['https://avatars.githubusercontent.com/u/37784886']
+    if (!isMounted) return [];
+    
+    try {
+      const walletConnectAdapter = new WalletConnectAdapter({
+        network: 'Mainnet',
+        options: {
+          relayUrl: 'wss://relay.walletconnect.com',
+          projectId: '048110749acfc9f73e40e560cd1c11ec',
+          metadata: {
+            name: 'TronTrust',
+            description: 'TRON Wallet Security Verification App',
+            url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
+            icons: ['https://avatars.githubusercontent.com/u/37784886']
+          }
         }
-      }
-    });
+      });
 
-    return [
-      new TronLinkAdapter(),
-      new BitKeepAdapter(),
-      new OkxWalletAdapter(),
-      new TokenPocketAdapter(),
-      new TrustAdapter(),
-      walletConnectAdapter,
-      new LedgerAdapter()
-    ];
-  }, []);
+      return [
+        new TronLinkAdapter(),
+        new BitKeepAdapter(),
+        new OkxWalletAdapter(),
+        new TokenPocketAdapter(),
+        new TrustAdapter(),
+        walletConnectAdapter,
+        new LedgerAdapter()
+      ];
+    } catch (error) {
+      console.error('Error initializing adapters:', error);
+      return [];
+    }
+  }, [isMounted]);
 
   const onError = useCallback((error: any) => {
     console.error('[TronTrust] Wallet Error:', error);
@@ -412,13 +448,24 @@ const WalletConnect = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-white mb-4 mx-auto" />
+          <p className="text-white text-lg">Loading TronTrust...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <WalletProvider 
       adapters={adapters} 
       onError={onError}
       onConnect={onConnect}
       onDisconnect={onDisconnect}
-      autoConnect={true}
+      autoConnect={false}
       localStorageKey="tronTrustWallet"
     >
       <WalletModalProvider>
@@ -427,11 +474,10 @@ const WalletConnect = () => {
             <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-3">
-                  <img
-                  src={logo}
-                  alt="TronTrust Logo"
-                  />
-                
+                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xl font-bold text-gray-900">TronTrust</span>
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
