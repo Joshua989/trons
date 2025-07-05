@@ -25,21 +25,23 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
+import logo from './logo.png'
+
+interface WalletInfo {
+  address: string;
+  chainId: number;
+  network: string;
+  walletType: string;
+  sessionId: string;
+  metadata: {
+    userAgent: string;
+    timestamp: number;
+    connectedAt: string;
+  };
+}
 
 const WalletConnectionCard = () => {
   const { wallet, address, connected, connecting, disconnect } = useWallet();
-  type WalletInfo = {
-    address: string;
-    chainId: number;
-    network: string;
-    walletType: string;
-    sessionId: string;
-    metadata: {
-      userAgent: string;
-      timestamp: number;
-      connectedAt: string;
-    };
-  };
   const [walletData, setWalletData] = useState<WalletInfo | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiSuccess, setApiSuccess] = useState<string | null>(null);
@@ -425,7 +427,11 @@ const WalletConnect = () => {
             <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl font-bold text-gray-900">TronTrust</div>
+                  <img
+                  src={logo}
+                  alt="TronTrust Logo"
+                  />
+                
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
