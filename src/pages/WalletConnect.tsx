@@ -32,34 +32,14 @@ interface WalletInfo {
   chainId: number;
   network: string;
   walletType: string;
-  sessionId: string;
-  metadata: {
-    userAgent: string;
-    timestamp: number;
-    connectedAt: string;
-  };
 }
 
 const WalletConnectionCard = () => {
   const { wallet, address, connected, connecting, disconnect } = useWallet();
   const [walletData, setWalletData] = useState<WalletInfo | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [apiSuccess, setApiSuccess] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [isRealTime, setIsRealTime] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
-
-  const getApiBaseUrl = () => {
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:5000/api';
-      }
-    }
-    return 'https://your-production-api.com/api';
-  };
-
-  const API_BASE_URL = getApiBaseUrl();
 
   const log = (message: string) => {
     console.log(`[TronTrust] ${message}`);
@@ -86,7 +66,6 @@ const WalletConnectionCard = () => {
       return '0';
     } catch (error) {
       console.error('Error fetching balance:', error);
-      setApiError('Failed to fetch balance. Please try again.');
       setBalance('0');
       return '0';
     } finally {
@@ -123,138 +102,36 @@ const WalletConnectionCard = () => {
 
   // Handle wallet connection/disconnection
   useEffect(() => {
-    const handleConnection = async () => {
-      if (connected && address && wallet) {
-        log(`TRON Wallet connected successfully!`);
-        log(`Address: ${address}`);
-        log(`Wallet: ${wallet.adapter.name}`);
-        
-        const walletInfo = {
-          address: address,
-          chainId: 728126428,
-          network: 'TRON Mainnet',
-          walletType: wallet.adapter.name,
-          sessionId: Date.now().toString(),
-          metadata: {
-            userAgent: navigator.userAgent,
-            timestamp: Date.now(),
-            connectedAt: new Date().toISOString()
-          }
-        };
-        
-        setWalletData(walletInfo);
-        setApiError(null);
-        
-        try {
-          await saveWalletToAPI(walletInfo);
-        } catch (error) {
-          console.error('Error saving wallet to API:', error);
-        }
-      } else if (!connected && walletData) {
-        log('TRON Wallet disconnected');
-        try {
-          await removeWalletFromAPI(walletData.address);
-        } catch (error) {
-          console.error('Error removing wallet from API:', error);
-        }
-        setWalletData(null);
-        setBalance(null);
-        setIsRealTime(false);
-      }
-    };
-
-    handleConnection();
+    if (connected && address && wallet) {
+      log(`TRON Wallet connected successfully!`);
+      log(`Address: ${address}`);
+      log(`Wallet: ${wallet.adapter.name}`);
+      
+      const walletInfo = {
+        address: address,
+        chainId: 728126428,
+        network: 'TRON Mainnet',
+        walletType: wallet.adapter.name,
+      };
+      
+      setWalletData(walletInfo);
+    } else if (!connected) {
+      log('TRON Wallet disconnected');
+      setWalletData(null);
+      setBalance(null);
+      setIsRealTime(false);
+    }
   }, [connected, address, wallet]);
-
-  const saveWalletToAPI = async (walletInfo: WalletInfo) => {
-    try {
-      setApiError(null);
-      log(`Saving wallet to API: ${walletInfo.address}`);
-      
-      const response = await fetch(`${API_BASE_URL}/connect-wallet`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(walletInfo)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        log(`Wallet saved successfully to API`);
-        setApiSuccess('Wallet successfully verified and saved!');
-        return result;
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      log(`API Error: ${errorMessage}`);
-      setApiError(`Connection failed: ${errorMessage}`);
-      throw error;
-    }
-  };
-
-  const removeWalletFromAPI = async (address: string) => {
-    try {
-      setApiError(null);
-      log(`Removing wallet from API: ${address}`);
-      
-      const response = await fetch(`${API_BASE_URL}/disconnect-wallet`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ address })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      if (result.success) {
-        log(`Wallet removed successfully from API`);
-        setApiSuccess('Wallet disconnected successfully!');
-        return result;
-      } else {
-        throw new Error(result.error || 'Unknown error');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      log(`API Error: ${errorMessage}`);
-      setApiError(`Disconnection failed: ${errorMessage}`);
-      throw error;
-    }
-  };
 
   const handleDisconnect = useCallback(async () => {
     log('Initiating wallet disconnect...');
-    setApiSuccess(null);
-    setApiError(null);
     try {
       await disconnect();
       log('Wallet disconnected successfully');
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
-      setApiError('Failed to disconnect wallet. Please try again.');
     }
   }, [disconnect]);
-
-  // Clear messages after 5 seconds
-  useEffect(() => {
-    if (apiSuccess || apiError) {
-      const timer = setTimeout(() => {
-        setApiSuccess(null);
-        setApiError(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [apiSuccess, apiError]);
 
   return (
     <div className="bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 p-6 shadow-xl">
@@ -300,21 +177,6 @@ const WalletConnectionCard = () => {
         )}
       </div>
       
-      {apiSuccess && (
-        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center space-x-2">
-            <Check className="w-4 h-4 text-green-600" />
-            <p className="text-sm text-green-800">{apiSuccess}</p>
-          </div>
-        </div>
-      )}
-      
-      {apiError && (
-        <div className="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
-          <p className="text-sm text-red-800">{apiError}</p>
-        </div>
-      )}
-      
       {connected && walletData && (
         <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
           <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center space-x-2">
@@ -352,10 +214,6 @@ const WalletConnectionCard = () => {
                   </span>
                 )}
               </div>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Session:</span>
-              <span className="font-mono text-xs">{walletData.sessionId}</span>
             </div>
           </div>
         </div>
