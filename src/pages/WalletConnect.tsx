@@ -25,7 +25,7 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
-import logo from './logo.png'
+import logo from './logo.png';
 
 interface WalletInfo {
   address: string;
@@ -96,7 +96,7 @@ const WalletConnectionCard = () => {
 
   // Real-time balance updates
   useEffect(() => {
-    let intervalId = null;
+    let intervalId: NodeJS.Timeout | null = null;
     
     if (connected && address) {
       log(`Setting up real-time balance monitoring for: ${address}`);
@@ -428,10 +428,11 @@ const WalletConnect = () => {
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-3">
                   <img
-                  src={logo}
-                  alt="TronTrust Logo"
+                    src={logo}
+                    alt="TronTrust Logo"
+                    className="h-10 w-auto"
                   />
-                
+                  <span className="text-xl font-bold text-gray-900">TronTrust</span>
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
@@ -454,10 +455,10 @@ const WalletConnect = () => {
                 </div>
                 
                 <div className="hidden md:flex items-center">
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 transform hover:scale-105">
+                  <WalletActionButton className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 transform hover:scale-105">
                     <Wallet className="w-4 h-4" />
                     <span>Wallet Security Check</span>
-                  </button>
+                  </WalletActionButton>
                 </div>
                 
                 <button 
@@ -488,10 +489,10 @@ const WalletConnect = () => {
                       <HelpCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">FAQ</span>
                     </a>
-                    <button className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
+                    <WalletActionButton className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
                       <Wallet className="w-4 h-4" />
                       <span>Wallet Security Check</span>
-                    </button>
+                    </WalletActionButton>
                   </div>
                 </div>
               )}
