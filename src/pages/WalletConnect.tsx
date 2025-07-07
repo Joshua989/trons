@@ -1,3 +1,7 @@
+// Polyfills for browser compatibility
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   TronLinkAdapter, 

@@ -26,6 +26,7 @@
     "@walletconnect/sign-client": "^2.21.4",
     "@walletconnect/universal-provider": "^2.21.4",
     "@web3modal/ethers": "^5.1.11",
+    "buffer": "^6.0.3",
     "framer-motion": "^12.23.0",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
