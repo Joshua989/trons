@@ -290,7 +290,6 @@ const WalletConnect = () => {
                     alt="TronTrust Logo"
                     className="h-10 w-auto"
                   />
-                  <span className="text-xl font-bold text-gray-900">TronTrust</span>
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
