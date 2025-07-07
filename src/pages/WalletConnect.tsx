@@ -4,6 +4,7 @@ import {
   BitKeepAdapter, 
   OkxWalletAdapter, 
   TokenPocketAdapter,
+  WalletConnectAdapter,
   LedgerAdapter,
   TrustAdapter
 } from '@tronweb3/tronwallet-adapters';
@@ -225,12 +226,27 @@ const WalletConnect = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const adapters = useMemo(() => {
+    const walletConnectAdapter = new WalletConnectAdapter({
+      network: 'Mainnet',
+      options: {
+        relayUrl: 'wss://relay.walletconnect.com',
+        projectId: '048110749acfc9f73e40e560cd1c11ec',
+        metadata: {
+          name: 'TronTrust',
+          description: 'TRON Wallet Security Verification App',
+          url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
+          icons: ['https://avatars.githubusercontent.com/u/37784886']
+        }
+      }
+    });
+
     return [
       new TronLinkAdapter(),
       new BitKeepAdapter(),
       new OkxWalletAdapter(),
       new TokenPocketAdapter(),
       new TrustAdapter(),
+      walletConnectAdapter,
       new LedgerAdapter()
     ];
   }, []);
