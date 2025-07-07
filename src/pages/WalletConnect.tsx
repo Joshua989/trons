@@ -25,7 +25,6 @@ import {
   ArrowRight,
   Loader2
 } from 'lucide-react';
-import logo from './logo.png';
 
 interface WalletInfo {
   address: string;
@@ -73,7 +72,6 @@ const WalletConnectionCard = () => {
     }
   }, []);
 
-  // Real-time balance updates
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
     
@@ -81,7 +79,6 @@ const WalletConnectionCard = () => {
       log(`Setting up real-time balance monitoring for: ${address}`);
       fetchBalance(address).catch(console.error);
       
-      // Update balance every 15 seconds
       intervalId = setInterval(() => {
         fetchBalance(address).catch(console.error);
       }, 15000);
@@ -100,7 +97,6 @@ const WalletConnectionCard = () => {
     };
   }, [connected, address, fetchBalance]);
 
-  // Handle wallet connection/disconnection
   useEffect(() => {
     if (connected && address && wallet) {
       log(`TRON Wallet connected successfully!`);
@@ -285,11 +281,10 @@ const WalletConnect = () => {
             <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={logo}
-                    alt="TronTrust Logo"
-                    className="h-10 w-auto"
-                  />
+                  <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-xl font-bold text-gray-900">TronTrust</span>
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
