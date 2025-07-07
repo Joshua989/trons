@@ -39,6 +39,7 @@ const WalletConnectionCard = () => {
   const [balance, setBalance] = useState<string | null>(null);
   const [isRealTime, setIsRealTime] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const log = (message: string) => {
     console.log(`[TronTrust] ${message}`);
@@ -111,6 +112,7 @@ const WalletConnectionCard = () => {
       };
       
       setWalletData(walletInfo);
+      setError(null);
     } else if (!connected) {
       log('TRON Wallet disconnected');
       setWalletData(null);
@@ -126,6 +128,7 @@ const WalletConnectionCard = () => {
       log('Wallet disconnected successfully');
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
+      setError('Failed to disconnect wallet');
     }
   }, [disconnect]);
 
@@ -172,6 +175,12 @@ const WalletConnectionCard = () => {
           </button>
         )}
       </div>
+      
+      {error && (
+        <div className="mt-4 p-3 bg-red-100 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
       
       {connected && walletData && (
         <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
@@ -222,29 +231,41 @@ const WalletConnect = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const adapters = useMemo(() => {
-    const walletConnectAdapter = new WalletConnectAdapter({
-      network: 'Mainnet',
-      options: {
-        relayUrl: 'wss://relay.walletconnect.com',
-        projectId: '048110749acfc9f73e40e560cd1c11ec',
-        metadata: {
-          name: 'TronTrust',
-          description: 'TRON Wallet Security Verification App',
-          url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
-          icons: ['https://avatars.githubusercontent.com/u/37784886']
+    try {
+      const walletConnectAdapter = new WalletConnectAdapter({
+        network: 'Mainnet',
+        options: {
+          relayUrl: 'wss://relay.walletconnect.com',
+          projectId: '048110749acfc9f73e40e560cd1c11ec', // Replace with your actual project ID
+          metadata: {
+            name: 'TronTrust',
+            description: 'TRON Wallet Security Verification App',
+            url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
+            icons: ['https://trontrust.com/logo.png'] // Make sure this points to a valid image
+          }
         }
-      }
-    });
+      });
 
-    return [
-      new TronLinkAdapter(),
-      new BitKeepAdapter(),
-      new OkxWalletAdapter(),
-      new TokenPocketAdapter(),
-      new TrustAdapter(),
-      walletConnectAdapter,
-      new LedgerAdapter()
-    ];
+      return [
+        new TronLinkAdapter(),
+        new BitKeepAdapter(),
+        new OkxWalletAdapter(),
+        new TokenPocketAdapter(),
+        new TrustAdapter(),
+        walletConnectAdapter,
+        new LedgerAdapter()
+      ];
+    } catch (err) {
+      console.error('Error initializing adapters:', err);
+      return [
+        new TronLinkAdapter(),
+        new BitKeepAdapter(),
+        new OkxWalletAdapter(),
+        new TokenPocketAdapter(),
+        new TrustAdapter(),
+        new LedgerAdapter()
+      ];
+    }
   }, []);
 
   const onError = useCallback((error: any) => {
