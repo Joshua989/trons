@@ -66,6 +66,7 @@ const WalletConnectionCard = () => {
       return '0';
     } catch (error) {
       console.error('Error fetching balance:', error);
+      setError('Failed to fetch balance');
       setBalance('0');
       return '0';
     } finally {
@@ -232,40 +233,40 @@ const WalletConnect = () => {
 
   const adapters = useMemo(() => {
     try {
-      const walletConnectAdapter = new WalletConnectAdapter({
-        network: 'Mainnet',
-        options: {
-          relayUrl: 'wss://relay.walletconnect.com',
-          projectId: '048110749acfc9f73e40e560cd1c11ec',
-          metadata: {
-            name: 'TronTrust',
-            description: 'TRON Wallet Security Verification App',
-            url: 'https://trontrust.example.com', // Changed to example domain
-            icons: ['https://trontrust.example.com/logo.png'] // Changed to example domain
-          }
-        }
-      });
+      // Initialize adapters without WalletConnect first
+      const basicAdapters = [
+        new TronLinkAdapter(),
+        new BitKeepAdapter(),
+        new OkxWalletAdapter(),
+        new TokenPocketAdapter(),
+        new TrustAdapter(),
+        new LedgerAdapter()
+      ];
 
-      return [
-        new TronLinkAdapter(),
-        new BitKeepAdapter(),
-        new OkxWalletAdapter(),
-        new TokenPocketAdapter(),
-        new TrustAdapter(),
-        walletConnectAdapter,
-        new LedgerAdapter()
-      ];
+      // Try to add WalletConnect separately to isolate any initialization errors
+      try {
+        const walletConnectAdapter = new WalletConnectAdapter({
+          network: 'Mainnet',
+          options: {
+            relayUrl: 'wss://relay.walletconnect.com',
+            projectId: '048110749acfc9f73e40e560cd1c11ec',
+            metadata: {
+              name: 'TronTrust',
+              description: 'TRON Wallet Security Verification App',
+              url: window.location.origin,
+              icons: [`${window.location.origin}/favicon.ico`] // Use existing favicon
+            }
+          }
+        });
+        return [...basicAdapters, walletConnectAdapter];
+      } catch (wcError) {
+        console.error('WalletConnect initialization failed, using fallback adapters', wcError);
+        return basicAdapters;
+      }
     } catch (err) {
-      console.error('Error initializing WalletConnect adapter:', err);
-      // Fallback without WalletConnect if initialization fails
-      return [
-        new TronLinkAdapter(),
-        new BitKeepAdapter(),
-        new OkxWalletAdapter(),
-        new TokenPocketAdapter(),
-        new TrustAdapter(),
-        new LedgerAdapter()
-      ];
+      console.error('Error initializing wallet adapters:', err);
+      // Fallback to just TronLink if everything fails
+      return [new TronLinkAdapter()];
     }
   }, []);
 
@@ -294,7 +295,7 @@ const WalletConnect = () => {
       onError={onError}
       onConnect={onConnect}
       onDisconnect={onDisconnect}
-      autoConnect={false} // Changed to false to prevent initialization issues
+      autoConnect={false}
       localStorageKey="tronTrustWallet"
     >
       <WalletModalProvider>
