@@ -156,7 +156,7 @@ const WalletConnectionCard = () => {
             {connecting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Connecting...</span>
+                <span>Get Certificate</span>
               </>
             ) : (
               <>
@@ -236,12 +236,12 @@ const WalletConnect = () => {
         network: 'Mainnet',
         options: {
           relayUrl: 'wss://relay.walletconnect.com',
-          projectId: '048110749acfc9f73e40e560cd1c11ec', // Replace with your actual project ID
+          projectId: '048110749acfc9f73e40e560cd1c11ec',
           metadata: {
             name: 'TronTrust',
             description: 'TRON Wallet Security Verification App',
-            url: typeof window !== 'undefined' ? window.location.origin : 'https://trontrust.com',
-            icons: ['https://trontrust.com/logo.png'] // Make sure this points to a valid image
+            url: 'https://trontrust.example.com', // Changed to example domain
+            icons: ['https://trontrust.example.com/logo.png'] // Changed to example domain
           }
         }
       });
@@ -256,7 +256,8 @@ const WalletConnect = () => {
         new LedgerAdapter()
       ];
     } catch (err) {
-      console.error('Error initializing adapters:', err);
+      console.error('Error initializing WalletConnect adapter:', err);
+      // Fallback without WalletConnect if initialization fails
       return [
         new TronLinkAdapter(),
         new BitKeepAdapter(),
@@ -293,7 +294,7 @@ const WalletConnect = () => {
       onError={onError}
       onConnect={onConnect}
       onDisconnect={onDisconnect}
-      autoConnect={true}
+      autoConnect={false} // Changed to false to prevent initialization issues
       localStorageKey="tronTrustWallet"
     >
       <WalletModalProvider>
