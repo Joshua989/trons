@@ -26,6 +26,11 @@ import {
   Loader2
 } from 'lucide-react';
 
+// Buffer polyfill for browsers
+if (typeof window !== 'undefined' && !window.Buffer) {
+  window.Buffer = require('buffer').Buffer;
+}
+
 interface WalletInfo {
   address: string;
   chainId: number;
@@ -233,8 +238,33 @@ const WalletConnect = () => {
 
   const adapters = useMemo(() => {
     try {
-      // Initialize adapters without WalletConnect first
-      const basicAdapters = [
+      const walletConnectAdapter = new WalletConnectAdapter({
+        network: 'Mainnet',
+        options: {
+          relayUrl: 'wss://relay.walletconnect.com',
+          projectId: '048110749acfc9f73e40e560cd1c11ec',
+          metadata: {
+            name: 'TronTrust',
+            description: 'TRON Wallet Security Verification App',
+            url: window.location.origin,
+            icons: [`${window.location.origin}/logo192.png`]
+          }
+        }
+      });
+
+      return [
+        new TronLinkAdapter(),
+        new BitKeepAdapter(),
+        new OkxWalletAdapter(),
+        new TokenPocketAdapter(),
+        new TrustAdapter(),
+        walletConnectAdapter,
+        new LedgerAdapter()
+      ];
+    } catch (err) {
+      console.error('Error initializing WalletConnect adapter:', err);
+      // Fallback without WalletConnect if initialization fails
+      return [
         new TronLinkAdapter(),
         new BitKeepAdapter(),
         new OkxWalletAdapter(),
@@ -242,31 +272,6 @@ const WalletConnect = () => {
         new TrustAdapter(),
         new LedgerAdapter()
       ];
-
-      // Try to add WalletConnect separately to isolate any initialization errors
-      try {
-        const walletConnectAdapter = new WalletConnectAdapter({
-          network: 'Mainnet',
-          options: {
-            relayUrl: 'wss://relay.walletconnect.com',
-            projectId: '048110749acfc9f73e40e560cd1c11ec',
-            metadata: {
-              name: 'TronTrust',
-              description: 'TRON Wallet Security Verification App',
-              url: window.location.origin,
-              icons: [`${window.location.origin}/favicon.ico`] // Use existing favicon
-            }
-          }
-        });
-        return [...basicAdapters, walletConnectAdapter];
-      } catch (wcError) {
-        console.error('WalletConnect initialization failed, using fallback adapters', wcError);
-        return basicAdapters;
-      }
-    } catch (err) {
-      console.error('Error initializing wallet adapters:', err);
-      // Fallback to just TronLink if everything fails
-      return [new TronLinkAdapter()];
     }
   }, []);
 
