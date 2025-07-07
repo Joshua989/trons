@@ -12,27 +12,20 @@ export default defineConfig({
   build: {
     target: 'es2020'
   },
+  define: {
+    global: {},
+    Buffer: {}
+  },
   optimizeDeps: {
     include: ['buffer'],
     esbuildOptions: {
-      define: {
-        global: 'globalThis',
-      },
       plugins: [
         NodeGlobalsPolyfillPlugin({
           process: true,
-          buffer: true,
+          buffer: true
         }),
-        NodeModulesPolyfillPlugin(),
-      ],
-    },
-  },
-  resolve: {
-    alias: {
-      buffer: 'buffer',
-    },
-  },
-  define: {
-    global: 'globalThis',
+        NodeModulesPolyfillPlugin()
+      ]
+    }
   }
 })
