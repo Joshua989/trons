@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   TronLinkAdapter, 
   BitKeepAdapter, 
   OkxWalletAdapter, 
   TokenPocketAdapter,
-  WalletConnectAdapter,
   LedgerAdapter,
   TrustAdapter
 } from '@tronweb3/tronwallet-adapters';
@@ -42,7 +41,7 @@ const WalletConnectionCard = () => {
   const [error, setError] = useState<string | null>(null);
 
   const log = (message: string) => {
-    console.log(`[TronTrust] ${message}`);
+    console.log(`[TronWallet] ${message}`);
   };
 
   const fetchBalance = useCallback(async (addr: string) => {
@@ -92,7 +91,7 @@ const WalletConnectionCard = () => {
     }
     
     return () => {
-      if (intervalId) {
+      if (intervalId !== null) {
         window.clearInterval(intervalId);
         log('Stopped real-time balance monitoring');
       }
@@ -232,41 +231,40 @@ const WalletConnect = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const adapters = useMemo(() => {
-    try {
-      const walletConnectAdapter = new WalletConnectAdapter({
-        network: 'Mainnet',
-        options: {
-          relayUrl: 'wss://relay.walletconnect.com',
-          projectId: process.env.REACT_APP_WALLETCONNECT_PROJECT_ID || '048110749acfc9f73e40e560cd1c11ec',
-          metadata: {
-            name: 'TRON Wallet App',
-            description: 'TRON Wallet Connection App',
-            url: typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000',
-            icons: [`${typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000'}/logo192.png`]
-          }
-        }
-      });
+    const baseAdapters = [
+      new TronLinkAdapter(),
+      new BitKeepAdapter(),
+      new OkxWalletAdapter(),
+      new TokenPocketAdapter(),
+      new TrustAdapter(),
+      new LedgerAdapter()
+    ];
 
-      return [
-        new TronLinkAdapter(),
-        new BitKeepAdapter(),
-        new OkxWalletAdapter(),
-        new TokenPocketAdapter(),
-        new TrustAdapter(),
-        walletConnectAdapter,
-        new LedgerAdapter()
-      ];
-    } catch (err) {
-      console.error('Error initializing WalletConnect adapter:', err);
-      return [
-        new TronLinkAdapter(),
-        new BitKeepAdapter(),
-        new OkxWalletAdapter(),
-        new TokenPocketAdapter(),
-        new TrustAdapter(),
-        new LedgerAdapter()
-      ];
+    // Only add WalletConnect if we have a project ID
+    const projectId = process.env.REACT_APP_WALLETCONNECT_PROJECT_ID;
+    if (projectId) {
+      try {
+        const { WalletConnectAdapter } = require('@tronweb3/tronwallet-adapters');
+        const walletConnectAdapter = new WalletConnectAdapter({
+          network: 'Mainnet',
+          options: {
+            relayUrl: 'wss://relay.walletconnect.com',
+            projectId: projectId,
+            metadata: {
+              name: 'TRON Wallet App',
+              description: 'TRON Wallet Connection App',
+              url: typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000',
+              icons: []
+            }
+          }
+        });
+        baseAdapters.push(walletConnectAdapter);
+      } catch (err) {
+        console.error('Error initializing WalletConnect adapter:', err);
+      }
     }
+
+    return baseAdapters;
   }, []);
 
   const onError = useCallback((error: any) => {
@@ -300,7 +298,7 @@ const WalletConnect = () => {
       <WalletModalProvider>
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300">
           <nav className="bg-white/10 backdrop-blur-md border-b border-white/20">
-            <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
@@ -310,22 +308,22 @@ const WalletConnect = () => {
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
-                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                  <button className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <Zap className="w-4 h-4" />
                     <span className="text-sm font-medium">Features</span>
-                  </a>
-                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                  </button>
+                  <button className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <Settings className="w-4 h-4" />
                     <span className="text-sm font-medium">Settings</span>
-                  </a>
-                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                  </button>
+                  <button className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <Shield className="w-4 h-4" />
                     <span className="text-sm font-medium">Security</span>
-                  </a>
-                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                  </button>
+                  <button className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <HelpCircle className="w-4 h-4" />
                     <span className="text-sm font-medium">Help</span>
-                  </a>
+                  </button>
                 </div>
                 
                 <div className="hidden md:flex items-center">
@@ -347,22 +345,22 @@ const WalletConnect = () => {
               {mobileMenuOpen && (
                 <div className="md:hidden py-4 border-t border-white/20">
                   <div className="space-y-4">
-                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                    <button className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <Zap className="w-4 h-4" />
                       <span className="text-sm font-medium">Features</span>
-                    </a>
-                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                    </button>
+                    <button className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <Settings className="w-4 h-4" />
                       <span className="text-sm font-medium">Settings</span>
-                    </a>
-                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                    </button>
+                    <button className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <Shield className="w-4 h-4" />
                       <span className="text-sm font-medium">Security</span>
-                    </a>
-                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                    </button>
+                    <button className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <HelpCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">Help</span>
-                    </a>
+                    </button>
                     <WalletActionButton className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
                       <Wallet className="w-4 h-4" />
                       <span>Connect Wallet</span>
