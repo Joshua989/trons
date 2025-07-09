@@ -26,11 +26,6 @@ import {
   Loader2
 } from 'lucide-react';
 
-// Buffer polyfill for browsers
-if (typeof window !== 'undefined' && !window.Buffer) {
-  window.Buffer = require('buffer').Buffer;
-}
-
 interface WalletInfo {
   address: string;
   chainId: number;
@@ -80,13 +75,13 @@ const WalletConnectionCard = () => {
   }, []);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: number | null = null;
     
     if (connected && address) {
       log(`Setting up real-time balance monitoring for: ${address}`);
       fetchBalance(address).catch(console.error);
       
-      intervalId = setInterval(() => {
+      intervalId = window.setInterval(() => {
         fetchBalance(address).catch(console.error);
       }, 15000);
       
@@ -98,7 +93,7 @@ const WalletConnectionCard = () => {
     
     return () => {
       if (intervalId) {
-        clearInterval(intervalId);
+        window.clearInterval(intervalId);
         log('Stopped real-time balance monitoring');
       }
     };
@@ -146,8 +141,8 @@ const WalletConnectionCard = () => {
             <Wallet className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900">TRUST WALLET</h3>
-            <p className="text-gray-600">Universal Wallet</p>
+            <h3 className="text-xl font-bold text-gray-900">TRON Wallet</h3>
+            <p className="text-gray-600">Connect your wallet</p>
             {connecting && (
               <div className="flex items-center space-x-2 mt-1">
                 <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
@@ -162,11 +157,11 @@ const WalletConnectionCard = () => {
             {connecting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Get Certificate</span>
+                <span>Connecting...</span>
               </>
             ) : (
               <>
-                <span>Get Certificate</span>
+                <span>Connect Wallet</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -242,12 +237,12 @@ const WalletConnect = () => {
         network: 'Mainnet',
         options: {
           relayUrl: 'wss://relay.walletconnect.com',
-          projectId: '048110749acfc9f73e40e560cd1c11ec',
+          projectId: process.env.REACT_APP_WALLETCONNECT_PROJECT_ID || '048110749acfc9f73e40e560cd1c11ec',
           metadata: {
-            name: 'TronTrust',
-            description: 'TRON Wallet Security Verification App',
-            url: window.location.origin,
-            icons: [`${window.location.origin}/logo192.png`]
+            name: 'TRON Wallet App',
+            description: 'TRON Wallet Connection App',
+            url: typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000',
+            icons: [`${typeof window !== 'undefined' ? window.location.origin : 'https://localhost:3000'}/logo192.png`]
           }
         }
       });
@@ -263,7 +258,6 @@ const WalletConnect = () => {
       ];
     } catch (err) {
       console.error('Error initializing WalletConnect adapter:', err);
-      // Fallback without WalletConnect if initialization fails
       return [
         new TronLinkAdapter(),
         new BitKeepAdapter(),
@@ -276,18 +270,18 @@ const WalletConnect = () => {
   }, []);
 
   const onError = useCallback((error: any) => {
-    console.error('[TronTrust] Wallet Error:', error);
+    console.error('[TronWallet] Wallet Error:', error);
     if (error.message) {
-      console.error('[TronTrust] Error Details:', error.message);
+      console.error('[TronWallet] Error Details:', error.message);
     }
   }, []);
 
   const onConnect = useCallback((address: string) => {
-    console.log('[TronTrust] Wallet Connected:', address);
+    console.log('[TronWallet] Wallet Connected:', address);
   }, []);
 
   const onDisconnect = useCallback(() => {
-    console.log('[TronTrust] Wallet Disconnected');
+    console.log('[TronWallet] Wallet Disconnected');
   }, []);
 
   const toggleMobileMenu = () => {
@@ -301,7 +295,7 @@ const WalletConnect = () => {
       onConnect={onConnect}
       onDisconnect={onDisconnect}
       autoConnect={false}
-      localStorageKey="tronTrustWallet"
+      localStorageKey="tronWallet"
     >
       <WalletModalProvider>
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300">
@@ -312,7 +306,7 @@ const WalletConnect = () => {
                   <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
                     <Wallet className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">TronTrust</span>
+                  <span className="text-xl font-bold text-gray-900">TRON Wallet</span>
                 </div>
                 
                 <div className="hidden md:flex items-center space-x-8">
@@ -322,22 +316,22 @@ const WalletConnect = () => {
                   </a>
                   <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <Settings className="w-4 h-4" />
-                    <span className="text-sm font-medium">How It Works</span>
+                    <span className="text-sm font-medium">Settings</span>
                   </a>
                   <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <Shield className="w-4 h-4" />
-                    <span className="text-sm font-medium">Verification Status</span>
+                    <span className="text-sm font-medium">Security</span>
                   </a>
                   <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
                     <HelpCircle className="w-4 h-4" />
-                    <span className="text-sm font-medium">FAQ</span>
+                    <span className="text-sm font-medium">Help</span>
                   </a>
                 </div>
                 
                 <div className="hidden md:flex items-center">
                   <WalletActionButton className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 transform hover:scale-105">
                     <Wallet className="w-4 h-4" />
-                    <span>Wallet Security Check</span>
+                    <span>Connect Wallet</span>
                   </WalletActionButton>
                 </div>
                 
@@ -359,19 +353,19 @@ const WalletConnect = () => {
                     </a>
                     <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <Settings className="w-4 h-4" />
-                      <span className="text-sm font-medium">How It Works</span>
+                      <span className="text-sm font-medium">Settings</span>
                     </a>
                     <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <Shield className="w-4 h-4" />
-                      <span className="text-sm font-medium">Verification Status</span>
+                      <span className="text-sm font-medium">Security</span>
                     </a>
                     <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
                       <HelpCircle className="w-4 h-4" />
-                      <span className="text-sm font-medium">FAQ</span>
+                      <span className="text-sm font-medium">Help</span>
                     </a>
                     <WalletActionButton className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
                       <Wallet className="w-4 h-4" />
-                      <span>Wallet Security Check</span>
+                      <span>Connect Wallet</span>
                     </WalletActionButton>
                   </div>
                 </div>
@@ -390,38 +384,38 @@ const WalletConnect = () => {
                   <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
                     <Check className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-sm text-purple-600 font-semibold">Get Started</span>
+                  <span className="text-sm text-purple-600 font-semibold">Connect</span>
                 </div>
                 
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
                     <Bell className="w-6 h-6 text-gray-500" />
                   </div>
-                  <span className="text-sm text-gray-600 font-medium">Scan</span>
+                  <span className="text-sm text-gray-600 font-medium">Verify</span>
                 </div>
                 
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
                     <FileText className="w-6 h-6 text-gray-500" />
                   </div>
-                  <span className="text-sm text-gray-600 font-medium">Results</span>
+                  <span className="text-sm text-gray-600 font-medium">Analyze</span>
                 </div>
                 
                 <div className="flex flex-col items-center">
                   <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
                     <File className="w-6 h-6 text-gray-500" />
                   </div>
-                  <span className="text-sm text-gray-600 font-medium">Waitlist</span>
+                  <span className="text-sm text-gray-600 font-medium">Results</span>
                 </div>
               </div>
             </div>
             
             <div className="text-center mb-12">
               <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">
-                CHECK YOUR CERTIFICATE NOW
+                CONNECT YOUR TRON WALLET
               </h1>
               <p className="text-xl text-gray-700 max-w-2xl mx-auto">
-                Choose your preferred wallet to begin the security verification
+                Choose your preferred wallet to begin
               </p>
             </div>
             
@@ -434,9 +428,9 @@ const WalletConnect = () => {
                     <Shield className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">YOUR SECURITY IS OUR PRIORITY.</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">SECURE CONNECTION</h3>
                     <p className="text-gray-700 text-lg">
-                      We only require view access to analyze your wallet. No transactions or approvals needed.
+                      We only require view access to your wallet. No transactions or approvals needed.
                     </p>
                   </div>
                 </div>
