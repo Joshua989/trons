@@ -1,207 +1,417 @@
-import React, { useState, useEffect } from 'react';
-import WalletConnectProvider from '@walletconnect/web3-provider';
-import QRCodeModal from '@walletconnect/qrcode-modal';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { 
+  TronLinkAdapter, 
+  BitKeepAdapter, 
+  OkxWalletAdapter, 
+  TokenPocketAdapter,
+  LedgerAdapter,
+  TrustAdapter
+} from '@tronweb3/tronwallet-adapters';
+import { WalletProvider, useWallet } from '@tronweb3/tronwallet-adapter-react-hooks';
+import { WalletModalProvider, WalletActionButton } from '@tronweb3/tronwallet-adapter-react-ui';
+import '@tronweb3/tronwallet-adapter-react-ui/style.css';
+import { 
+  Zap, 
+  Settings, 
+  Shield, 
+  HelpCircle, 
+  Wallet,
+  Menu,
+  Check,
+  Bell,
+  FileText,
+  File,
+  ArrowRight,
+  Loader2
+} from 'lucide-react';
 
-declare global {
-  interface Window {
-    tronWeb?: any;
-  }
-}
-
-interface WalletData {
+interface WalletInfo {
   address: string;
-  balance?: string;
-  chainId?: string;
+  chainId: number;
+  network: string;
+  walletType: string;
 }
 
-const WalletConnect: React.FC = () => {
-  const [walletData, setWalletData] = useState<WalletData | null>(null);
+const WalletConnectionCard = () => {
+  const { wallet, address, connected, connecting, disconnect } = useWallet();
+  const [walletData, setWalletData] = useState<WalletInfo | null>(null);
+  const [balance, setBalance] = useState<string | null>(null);
+  const [isRealTime, setIsRealTime] = useState(false);
+  const [balanceLoading, setBalanceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [connector, setConnector] = useState<any>(null);
 
-  // Initialize WalletConnect for Tron
-  const initWalletConnect = async () => {
-    setIsLoading(true);
-    setError(null);
+  const log = (message: string) => {
+    console.log(`[TronTrust] ${message}`);
+  };
 
+  const fetchBalance = useCallback(async (addr: string) => {
     try {
-      // Create a new WalletConnect provider with proper mobile linking options
-      const walletConnectProvider = new WalletConnectProvider({
-        rpc: {
-          1: 'https://api.trongrid.io', // Tron mainnet
-          2: 'https://nile.trongrid.io', // Tron testnet
-        },
-        bridge: 'https://bridge.walletconnect.org',
-        qrcodeModal: QRCodeModal,
-        qrcodeModalOptions: {
-          mobileLinks: [
-            'trust', 
-            'tokenpocket',
-            'mathwallet',
-            'safepal',
-            'bitkeep',
-            'imtoken'
-          ],
-          desktopLinks: [], // You can add desktop wallets here if needed
-        }
-      });
-
-      // Enable session (this will show both QR code and mobile wallet options)
-      await walletConnectProvider.enable();
-
-      // Set the connector
-      setConnector(walletConnectProvider);
-
-      // Get accounts and chain info
-      const accounts = walletConnectProvider.accounts;
-      const chainId = walletConnectProvider.chainId;
-
-      if (accounts.length === 0) {
-        throw new Error('No accounts found');
-      }
-
-      // For Tron network
-      const address = accounts[0];
-      let balance = '0';
+      setBalanceLoading(true);
+      log(`Fetching balance for address: ${addr}`);
       
-      // Try to get balance if on Tron network
-      if (chainId === 1 || chainId === 2) {
-        if (window.tronWeb) {
-          try {
-            const sunBalance = await window.tronWeb.trx.getBalance(address);
-            balance = window.tronWeb.fromSun(sunBalance);
-          } catch (err) {
-            console.error('Error getting Tron balance:', err);
-          }
-        }
+      const response = await fetch(`https://api.trongrid.io/v1/accounts/${addr}`);
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.status}`);
       }
-
-      setWalletData({
-        address,
-        balance: chainId === 1 || chainId === 2 ? balance : undefined,
-        chainId: String(chainId)
-      });
-
-      // Set up event listeners
-      walletConnectProvider.on("accountsChanged", (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setWalletData(prev => prev ? {...prev, address: accounts[0]} : null);
-        } else {
-          setWalletData(null);
-        }
-      });
-
-      walletConnectProvider.on("chainChanged", (chainId: string) => {
-        setWalletData(prev => prev ? {...prev, chainId} : null);
-      });
-
-      walletConnectProvider.on("disconnect", () => {
-        setWalletData(null);
-        setConnector(null);
-      });
-
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect');
+      const data = await response.json();
+      
+      if (data.data && data.data.length > 0) {
+        const trxBalance = data.data[0].balance ? (data.data[0].balance / 1000000).toFixed(6) : '0';
+        setBalance(trxBalance);
+        log(`Balance fetched successfully: ${trxBalance} TRX`);
+        return trxBalance;
+      }
+      setBalance('0');
+      return '0';
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setError('Failed to fetch balance');
+      setBalance('0');
+      return '0';
     } finally {
-      setIsLoading(false);
+      setBalanceLoading(false);
     }
-  };
-
-  const disconnectWallet = async () => {
-    if (connector) {
-      try {
-        await connector.disconnect();
-      } catch (err) {
-        console.error('Error disconnecting:', err);
-      }
-    }
-    setWalletData(null);
-    setConnector(null);
-  };
-
-  const formatAddress = (address: string) => {
-    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-  };
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const checkExistingSession = async () => {
-      const provider = new WalletConnectProvider({
-        rpc: {
-          1: 'https://api.trongrid.io',
-          2: 'https://nile.trongrid.io',
-        }
-      });
-
-      try {
-        // Check if there's an existing session
-        if (provider.connector.session) {
-          await provider.enable();
-          setConnector(provider);
-          
-          const accounts = provider.accounts;
-          const chainId = provider.chainId;
-          
-          if (accounts.length > 0) {
-            setWalletData({
-              address: accounts[0],
-              chainId: String(chainId)
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Error checking existing session:', err);
-      }
-    };
-
-    checkExistingSession();
   }, []);
 
+  useEffect(() => {
+    let intervalId: number | null = null;
+    
+    if (connected && address) {
+      log(`Setting up real-time balance monitoring for: ${address}`);
+      fetchBalance(address).catch(console.error);
+      
+      intervalId = window.setInterval(() => {
+        fetchBalance(address).catch(console.error);
+      }, 15000);
+      
+      setIsRealTime(true);
+    } else {
+      setBalance(null);
+      setIsRealTime(false);
+    }
+    
+    return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+        log('Stopped real-time balance monitoring');
+      }
+    };
+  }, [connected, address, fetchBalance]);
+
+  useEffect(() => {
+    if (connected && address && wallet) {
+      log(`TRON Wallet connected successfully!`);
+      log(`Address: ${address}`);
+      log(`Wallet: ${wallet.adapter.name}`);
+      
+      const walletInfo = {
+        address: address,
+        chainId: 728126428,
+        network: 'TRON Mainnet',
+        walletType: wallet.adapter.name,
+      };
+      
+      setWalletData(walletInfo);
+      setError(null);
+    } else if (!connected) {
+      log('TRON Wallet disconnected');
+      setWalletData(null);
+      setBalance(null);
+      setIsRealTime(false);
+    }
+  }, [connected, address, wallet]);
+
+  const handleDisconnect = useCallback(async () => {
+    log('Initiating wallet disconnect...');
+    try {
+      await disconnect();
+      log('Wallet disconnected successfully');
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      setError('Failed to disconnect wallet');
+    }
+  }, [disconnect]);
+
   return (
-    <div className="relative">
-      {walletData ? (
+    <div className="bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 p-6 shadow-xl">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">
-                {formatAddress(walletData.address)}
-              </span>
-              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                {walletData.chainId === '1' ? 'Tron Mainnet' : 
-                 walletData.chainId === '2' ? 'Tron Testnet' : 
-                 `Chain ${walletData.chainId}`}
-              </span>
-            </div>
-            {walletData.balance && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Balance: {parseFloat(walletData.balance).toFixed(2)} TRX
+          <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center">
+            <Wallet className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">TRON Wallet</h3>
+            <p className="text-gray-600">Connect your wallet</p>
+            {connecting && (
+              <div className="flex items-center space-x-2 mt-1">
+                <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+                <span className="text-sm text-purple-600">Connecting...</span>
               </div>
             )}
           </div>
-          <button
-            onClick={disconnectWallet}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Disconnect
-          </button>
         </div>
-      ) : (
-        <button
-          onClick={initWalletConnect}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Connecting...' : 'Connect with WalletConnect'}
-        </button>
-      )}
-
+        
+        {!connected ? (
+          <WalletActionButton className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 transform hover:scale-105 disabled:opacity-50">
+            {connecting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <span>Connect Wallet</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </WalletActionButton>
+        ) : (
+          <button 
+            onClick={handleDisconnect}
+            disabled={connecting}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50"
+          >
+            {connecting ? 'Disconnecting...' : 'Disconnect'}
+          </button>
+        )}
+      </div>
+      
       {error && (
-        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+        <div className="mt-4 p-3 bg-red-100 rounded-lg text-red-700 text-sm">
           {error}
         </div>
       )}
+      
+      {connected && walletData && (
+        <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+          <h4 className="text-sm font-semibold text-green-800 mb-3 flex items-center space-x-2">
+            <Check className="w-4 h-4" />
+            <span>Connected TRON Wallet</span>
+          </h4>
+          <div className="space-y-2 text-sm text-green-700">
+            <div className="flex justify-between">
+              <span className="font-medium">Address:</span>
+              <span className="font-mono text-xs">{walletData.address.slice(0, 8)}...{walletData.address.slice(-8)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Network:</span>
+              <span>{walletData.network}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Wallet:</span>
+              <span>{walletData.walletType}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Chain ID:</span>
+              <span>{walletData.chainId}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Balance:</span>
+              <div className="flex items-center space-x-2">
+                {balanceLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <span className="font-mono">{balance || '0'} TRX</span>
+                )}
+                {isRealTime && (
+                  <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                    Live
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+};
+
+const WalletConnect = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const adapters = useMemo(() => {
+    return [
+      new TronLinkAdapter(),
+      new BitKeepAdapter(),
+      new OkxWalletAdapter(),
+      new TokenPocketAdapter(),
+      new TrustAdapter(),
+      new LedgerAdapter()
+    ];
+  }, []);
+
+  const onError = useCallback((error: any) => {
+    console.error('[TronWallet] Wallet Error:', error);
+    if (error.message) {
+      console.error('[TronWallet] Error Details:', error.message);
+    }
+  }, []);
+
+  const onConnect = useCallback((address: string) => {
+    console.log('[TronWallet] Wallet Connected:', address);
+  }, []);
+
+  const onDisconnect = useCallback(() => {
+    console.log('[TronWallet] Wallet Disconnected');
+  }, []);
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  return (
+    <WalletProvider 
+      adapters={adapters} 
+      onError={onError}
+      onConnect={onConnect}
+      onDisconnect={onDisconnect}
+      autoConnect={false}
+      localStorageKey="tronWallet"
+    >
+      <WalletModalProvider>
+        <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-300">
+          <nav className="bg-white/10 backdrop-blur-md border-b border-white/20">
+            <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-xl font-bold text-gray-900">TRON Wallet</span>
+                </div>
+                
+                <div className="hidden md:flex items-center space-x-8">
+                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                    <Zap className="w-4 h-4" />
+                    <span className="text-sm font-medium">Features</span>
+                  </a>
+                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm font-medium">Settings</span>
+                  </a>
+                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-sm font-medium">Security</span>
+                  </a>
+                  <a href="#" className="flex items-center space-x-1 text-gray-700 hover:text-purple-600 transition-colors">
+                    <HelpCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">Help</span>
+                  </a>
+                </div>
+                
+                <div className="hidden md:flex items-center">
+                  <WalletActionButton className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center space-x-2 transform hover:scale-105">
+                    <Wallet className="w-4 h-4" />
+                    <span>Connect Wallet</span>
+                  </WalletActionButton>
+                </div>
+                
+                <button 
+                  className="md:hidden p-2 rounded-lg hover:bg-white/20"
+                  onClick={toggleMobileMenu}
+                  aria-label="Toggle menu"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              </div>
+              
+              {mobileMenuOpen && (
+                <div className="md:hidden py-4 border-t border-white/20">
+                  <div className="space-y-4">
+                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                      <Zap className="w-4 h-4" />
+                      <span className="text-sm font-medium">Features</span>
+                    </a>
+                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                      <Settings className="w-4 h-4" />
+                      <span className="text-sm font-medium">Settings</span>
+                    </a>
+                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                      <Shield className="w-4 h-4" />
+                      <span className="text-sm font-medium">Security</span>
+                    </a>
+                    <a href="#" className="flex items-center space-x-2 text-gray-700 hover:text-purple-600 transition-colors">
+                      <HelpCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Help</span>
+                    </a>
+                    <WalletActionButton className="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
+                      <Wallet className="w-4 h-4" />
+                      <span>Connect Wallet</span>
+                    </WalletActionButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          </nav>
+          
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="mb-12">
+              <div className="w-full bg-white/30 rounded-full h-2 mb-8">
+                <div className="bg-purple-600 h-2 rounded-full w-1/4"></div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                    <Check className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm text-purple-600 font-semibold">Connect</span>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
+                    <Bell className="w-6 h-6 text-gray-500" />
+                  </div>
+                  <span className="text-sm text-gray-600 font-medium">Verify</span>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
+                    <FileText className="w-6 h-6 text-gray-500" />
+                  </div>
+                  <span className="text-sm text-gray-600 font-medium">Analyze</span>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 bg-white/30 rounded-full flex items-center justify-center mb-3">
+                    <File className="w-6 h-6 text-gray-500" />
+                  </div>
+                  <span className="text-sm text-gray-600 font-medium">Results</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mb-12">
+              <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+                CONNECT YOUR TRON WALLET
+              </h1>
+              <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+                Choose your preferred wallet to begin
+              </p>
+            </div>
+            
+            <div className="space-y-8">
+              <WalletConnectionCard />
+              
+              <div className="bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30 p-8 shadow-xl">
+                <div className="flex items-center space-x-6">
+                  <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center">
+                    <Shield className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">SECURE CONNECTION</h3>
+                    <p className="text-gray-700 text-lg">
+                      We only require view access to your wallet. No transactions or approvals needed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </WalletModalProvider>
+    </WalletProvider>
   );
 };
 
