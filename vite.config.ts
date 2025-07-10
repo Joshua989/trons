@@ -1,24 +1,27 @@
-import { defineConfig } from 'vite'
-import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
-import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill'
-import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { NodeGlobalsPolyfillPlugin } from '@esbuild-plugins/node-globals-polyfill';
+import { NodeModulesPolyfillPlugin } from '@esbuild-plugins/node-modules-polyfill';
 
+// ✅ Correct Buffer polyfill
 export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    react()
-  ],
+  plugins: [react()],
   build: {
-    target: 'es2020'
+    target: 'es2020',
+    rollupOptions: {
+      // required to polyfill Buffer in production build
+      plugins: []
+    }
   },
   define: {
-    global: {},
-    Buffer: {}
+    global: 'globalThis'
   },
   optimizeDeps: {
     include: ['buffer'],
     esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      },
       plugins: [
         NodeGlobalsPolyfillPlugin({
           process: true,
@@ -28,4 +31,4 @@ export default defineConfig({
       ]
     }
   }
-})
+});
